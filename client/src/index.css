@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  :root {
+    --color-void: 11 14 20;
+    --color-surface: 19 23 32;
+    --color-surface2: 27 32 48;
+    --color-ink: 237 239 243;
+    --color-inkdim: 139 147 167;
+    --color-line: 35 40 56;
+    --color-amber: 240 168 104;
+    --color-teal: 79 209 197;
+    --color-violet: 159 135 245;
+    --color-coral: 242 125 125;
+  }
+
+  html.light {
+    --color-void: 248 250 252;
+    --color-surface: 255 255 255;
+    --color-surface2: 241 245 249;
+    --color-ink: 15 23 42;
+    --color-inkdim: 100 116 139;
+    --color-line: 226 232 240;
+  }
+
+  body {
+    background-color: rgb(var(--color-void));
+    color: rgb(var(--color-ink));
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    @apply antialiased selection:bg-amber selection:text-void overflow-x-hidden;
+  }
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #232838 transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: rgba(11, 14, 20, 0.5);
+}
+*::-webkit-scrollbar-thumb {
+  background: #232838;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 168, 104, 0.4);
+}
+
+/* Accessibility Focus States */
+:focus-visible {
+  outline: 2px solid #f0a868;
+  outline-offset: 2px;
+}
+
+/* Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Background Gradients & Effects */
+.grain-bg {
+  background-image: 
+    radial-gradient(circle at 20% 10%, rgba(159, 135, 245, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(79, 209, 197, 0.1), transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(240, 168, 104, 0.05), transparent 60%);
+}
+
+/* Glassmorphism Components */
+.glass-panel {
+  background: rgba(19, 23, 32, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.glass-button {
+  background: rgba(27, 32, 48, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.light .glass-button {
+  background: rgba(241, 245, 249, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Existing Custom Utilities */
+.card {
+  @apply bg-surface border border-line rounded-2xl transition-all duration-300;
+}
+
+.btn-primary {
+  @apply bg-amber text-void font-semibold rounded-xl px-4 py-2.5 transition-all duration-200 active:scale-95 hover:brightness-110 shadow-[0_0_20px_rgba(240,168,104,0.25)];
+}
+
+.btn-ghost {
+  @apply bg-surface2 text-ink border border-line rounded-xl px-4 py-2.5 transition-all duration-200 hover:border-amber/50 active:scale-95;
+}
+
+.input-field {
+  @apply w-full bg-surface2/80 backdrop-blur-md border border-line rounded-xl px-4 py-3 text-ink placeholder:text-inkdim outline-none focus:border-amber/60 focus:ring-1 focus:ring-amber/40 transition-all duration-200;
+}
+
+/* Glow Border Effect */
+.glow-border {
+  position: relative;
+}
+.glow-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(90deg, #f0a868, #9f87f5, #4fd1c5);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.4;
+  filter: blur(8px);
+  transition: opacity 0.3s ease;
+}
+.glow-border:hover::after {
+  opacity: 0.9;
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(19, 23, 32, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.glass-button {
+  background: rgba(27, 32, 48, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html.light .glass-button {
+  background: rgba(241, 245, 249, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Form & Button Utilities */
+.card {
+  @apply bg-surface border border-line rounded-2xl;
+}
+
+.btn-primary {
+  @apply bg-amber text-void font-semibold rounded-xl px-4 py-2.5 transition-all duration-200 active:scale-95 hover:brightness-110 shadow-[0_0_20px_rgba(240,168,104,0.25)];
+}
+
+.btn-ghost {
+  @apply bg-surface2 text-ink border border-line rounded-xl px-4 py-2.5 transition-all duration-200 hover:border-amber/50 active:scale-95;
+}
+
+.input-field {
+  @apply w-full bg-surface2 border border-line rounded-xl px-4 py-3 text-ink placeholder:text-inkdim outline-none focus:border-amber/60 transition-all duration-200;
+}
