@@ -12,7 +12,7 @@ const router = Router();
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// Block executable/script types outright; everything else capped at 25MB
+// Block executable/script types outright
 const BLOCKED_EXT = new Set([".exe", ".bat", ".sh", ".cmd", ".msi", ".js", ".jar"]);
 
 const storage = multer.diskStorage({
@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (BLOCKED_EXT.has(ext)) {
@@ -37,6 +37,7 @@ const upload = multer({
 
 router.use(requireAuth);
 
+// Upload File Route
 router.post("/:roomCode", upload.single("file"), async (req, res) => {
   try {
     const room = await Room.findOne({ code: req.params.roomCode.toLowerCase() });
@@ -72,10 +73,17 @@ router.post("/:roomCode", upload.single("file"), async (req, res) => {
   }
 });
 
+// Download File Route
 router.get("/download/:storedName", (req, res) => {
-  const filePath = path.join(UPLOAD_DIR, path.basename(req.params.storedName));
-  if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File not found" });
-  res.download(filePath);
+  const safeFileName = path.basename(req.params.storedName);
+  const filePath = path.join(UPLOAD_DIR, safeFileName);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.download(filePath, safeFileName);
 });
 
 export default router;

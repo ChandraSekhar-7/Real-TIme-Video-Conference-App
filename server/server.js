@@ -16,16 +16,18 @@ import { registerSignaling } from "./socket/signaling.js";
 
 const app = express();
 const server = http.createServer(app);
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
+const CLIENT_URL = (process.env.CLIENT_URL || RENDER_BACKEND_URL).replace(/\/$/, "");
+const ALLOWED_ORIGINS = [CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
 
 const io = new Server(server, {
-  cors: { origin: CLIENT_URL, credentials: true },
+  cors: { origin: ALLOWED_ORIGINS, credentials: true },
   maxHttpBufferSize: 1e7,
 });
 
 // ---- Security middleware ----
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-app.use(cors({ origin: CLIENT_URL, credentials: true }));
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(compression());
 app.use(express.json({ limit: "2mb" }));
 app.use(mongoSanitize());

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, FILE_DOWNLOAD_URL } from "../utils/api";
+import { X, Paperclip, Send, Download, FileText, Loader2 } from "lucide-react";
 
 export default function ChatPanel({ socketRef, roomCode, onClose }) {
   const [messages, setMessages] = useState([]);
@@ -9,17 +10,27 @@ export default function ChatPanel({ socketRef, roomCode, onClose }) {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    api.get(`/rooms/${roomCode}/messages`).then(({ data }) => setMessages(data.messages));
+    api
+      .get(`/rooms/${roomCode}/messages`)
+      .then(({ data }) => setMessages(data.messages || []))
+      .catch((err) => console.error("Error fetching messages:", err));
   }, [roomCode]);
 
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
+
     function onMessage(msg) {
       setMessages((prev) => [...prev, msg]);
     }
+
     socket.on("chat:message", onMessage);
-    return () => socket.off("chat:message", onMessage);
+    socket.on("chat:file-shared", onMessage);
+
+    return () => {
+      socket.off("chat:message", onMessage);
+      socket.off("chat:file-shared", onMessage);
+    };
   }, [socketRef]);
 
   useEffect(() => {
@@ -60,67 +71,99 @@ export default function ChatPanel({ socketRef, roomCode, onClose }) {
   }
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-surface border-l border-line z-20 flex flex-col">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+    <div className="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-surface border-l border-line z-20 flex flex-col shadow-2xl">
+      {/* Panel Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-surface2/50 backdrop-blur-md">
         <div>
-          <h3 className="font-display font-semibold text-sm">Chat & files</h3>
+          <h3 className="font-display font-semibold text-sm text-ink">Chat & files</h3>
           <p className="text-[11px] text-inkdim">messages are encrypted at rest</p>
         </div>
-        <button onClick={onClose} className="text-inkdim hover:text-ink text-lg leading-none">
-          ×
+        <button
+          onClick={onClose}
+          className="text-inkdim hover:text-ink p-1.5 rounded-lg hover:bg-surface2 transition-colors cursor-pointer"
+        >
+          <X className="w-5 h-5" />
         </button>
       </div>
 
+      {/* Messages List */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         {messages.length === 0 && (
-          <p className="text-inkdim text-sm text-center mt-10">
-            No messages yet. Say hello or drop a file.
-          </p>
+          <div className="text-center mt-12 space-y-2">
+            <p className="text-inkdim text-sm">No messages yet.</p>
+            <p className="text-xs text-inkdim/60">Say hello or share a file with the room.</p>
+          </div>
         )}
-        {messages.map((m) => (
-          <div key={m.id}>
-            <div className="flex items-baseline gap-2">
+
+        {messages.map((m, index) => (
+          <div key={m.id || index} className="flex flex-col">
+            <div className="flex items-baseline gap-2 mb-1">
               <span className="text-xs font-semibold text-teal">{m.senderName}</span>
-              <span className="text-[10px] text-inkdim">
-                {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              <span className="text-[10px] text-inkdim font-mono">
+                {m.createdAt
+                  ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : ""}
               </span>
             </div>
+
             {m.type === "file" ? (
               <a
-                href={FILE_DOWNLOAD_URL(m.fileMeta.storedName)}
-                className="mt-1 flex items-center gap-2 bg-surface2 border border-line rounded-lg px-3 py-2 hover:border-amber/50 transition-colors"
+                href={FILE_DOWNLOAD_URL(m.fileMeta?.storedName)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 bg-surface2/80 border border-line hover:border-amber/60 rounded-xl p-3 transition-all cursor-pointer group shadow-sm"
               >
-                <span className="text-amber">⇪</span>
-                <span className="text-sm truncate flex-1">{m.fileMeta.originalName}</span>
-                <span className="text-[10px] text-inkdim">{formatSize(m.fileMeta.size)}</span>
+                <div className="p-2 rounded-lg bg-amber/10 text-amber group-hover:scale-105 transition-transform">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-ink truncate">{m.fileMeta?.originalName}</p>
+                  <p className="text-[10px] text-inkdim">{formatSize(m.fileMeta?.size)}</p>
+                </div>
+                <Download className="w-4 h-4 text-inkdim group-hover:text-amber transition-colors" />
               </a>
             ) : (
-              <p className="text-sm text-ink mt-0.5 break-words">{m.text}</p>
+              <p className="text-sm text-ink bg-surface2/40 border border-line/40 rounded-2xl px-3.5 py-2 w-fit max-w-[85%] break-words">
+                {m.text}
+              </p>
             )}
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={sendMessage} className="p-3 border-t border-line flex items-center gap-2">
+      {/* Message Input Form */}
+      <form onSubmit={sendMessage} className="p-3 border-t border-line bg-surface2/30 flex items-center gap-2">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="h-10 w-10 shrink-0 rounded-lg bg-surface2 border border-line flex items-center justify-center hover:border-amber/50"
+          className="h-10 w-10 shrink-0 rounded-xl bg-surface2 border border-line flex items-center justify-center text-inkdim hover:text-amber hover:border-amber/50 transition-colors cursor-pointer disabled:opacity-50"
           title="Share a file"
         >
-          {uploading ? "…" : "＋"}
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin text-amber" /> : <Paperclip className="w-4 h-4" />}
         </button>
-        <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+
         <input
-          className="input-field flex-1 py-2.5"
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        <input
+          className="input-field flex-1 py-2 text-xs"
           placeholder="Message the room…"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <button type="submit" className="btn-primary px-4 py-2.5">
-          Send
+
+        <button
+          type="submit"
+          disabled={!text.trim()}
+          className="btn-primary p-2.5 rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50"
+        >
+          <Send className="w-4 h-4" />
         </button>
       </form>
     </div>

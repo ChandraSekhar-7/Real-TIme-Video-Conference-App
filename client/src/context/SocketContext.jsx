@@ -1,38 +1,103 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
-import { SOCKET_URL } from "../utils/api";
-import { useAuth } from "./AuthContext";
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import cors from "cors";
+import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 
-const SocketContext = createContext(null);
+// Load environment variables
+dotenv.config();
 
-export function SocketProvider({ children }) {
-  const { token } = useAuth();
-  const socketRef = useRef(null);
-  const [connected, setConnected] = useState(false);
+const app = express();
+const server = http.createServer(app);
 
-  useEffect(() => {
-    if (!token) return;
-    const socket = io(SOCKET_URL, { auth: { token }, transports: ["websocket"] });
-    socketRef.current = socket;
+// Allowed Client Origin
+const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
+const CLIENT_URL = (import.meta.env.VITE_API_URL || RENDER_BACKEND_URL).replace(/\/$/, "");
+const ALLOWED_ORIGINS = [CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
 
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
+// Express Middleware
+app.use(express.json());
+app.use(
+  cors({
+    origin: ALLOWED_ORIGINS,
+    credentials: true,
+  })
+);
 
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [token]);
+// Initialize Socket.IO with CORS & Polling/WebSocket Transports
+const io = new Server(server, {
+  cors: {
+    origin: ALLOWED_ORIGINS,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+  transports: ["websocket", "polling"], // Matches client transports
+});
 
-  return (
-    <SocketContext.Provider value={{ socket: socketRef, connected }}>
-      {children}
-    </SocketContext.Provider>
-  );
-}
+// Socket.IO Middleware for JWT Authentication
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    return next(new Error("Authentication error: Token missing"));
+  }
 
-export function useSocket() {
-  const ctx = useContext(SocketContext);
-  if (!ctx) throw new Error("useSocket must be used within SocketProvider");
-  return ctx;
-}
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback_secret");
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    next(new Error("Authentication error: Invalid token"));
+  }
+});
+
+// Socket.IO Connection & Event Handlers
+io.on("connection", (socket) => {
+  console.log(`⚡ User connected: ${socket.id} (User ID: ${socket.user?.id || "Authenticated"})`);
+
+  // Join Meeting Room
+  socket.on("join-room", ({ roomId, user }) => {
+    socket.join(roomId);
+    socket.to(roomId).emit("user-joined", { socketId: socket.id, user });
+    console.log(`User ${socket.id} joined room ${roomId}`);
+  });
+
+  // WebRTC Signaling Events
+  socket.on("offer", ({ to, offer }) => {
+    io.to(to).emit("offer", { from: socket.id, offer });
+  });
+
+  socket.on("answer", ({ to, answer }) => {
+    io.to(to).emit("answer", { from: socket.id, answer });
+  });
+
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    io.to(to).emit("ice-candidate", { from: socket.id, candidate });
+  });
+
+  // Chat & Reaction Events
+  socket.on("send-message", ({ roomId, message }) => {
+    io.to(roomId).emit("receive-message", message);
+  });
+
+  socket.on("send-reaction", ({ roomId, reaction }) => {
+    io.to(roomId).emit("receive-reaction", { from: socket.id, reaction });
+  });
+
+  // Disconnect Handler
+  socket.on("disconnect", (reason) => {
+    console.log(`❌ User disconnected: ${socket.id} Reason: ${reason}`);
+    io.emit("user-disconnected", { socketId: socket.id });
+  });
+});
+
+// Health check endpoint for Render
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Convene Server Running" });
+});
+
+// Start Server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+});
