@@ -16,8 +16,8 @@ import { registerSignaling } from "./socket/signaling.js";
 
 const app = express();
 const server = http.createServer(app);
-const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
-const CLIENT_URL = (process.env.CLIENT_URL || RENDER_BACKEND_URL).replace(/\/$/, "");
+const RENDER_FRONTEND_URL = "https://real-time-video-conference-app-1.onrender.com";
+const CLIENT_URL = (process.env.CLIENT_URL || RENDER_FRONTEND_URL).replace(/\/$/, "");
 const ALLOWED_ORIGINS = [CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
 
 const io = new Server(server, {

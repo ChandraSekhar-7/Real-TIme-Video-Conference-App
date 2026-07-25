@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
-const API_BASE = (import.meta.env.VITE_API_URL || RENDER_BACKEND_URL).replace(/\/$/, "");
+const RENDER_FRONTEND_URL = "https://real-time-video-conference-app-1.onrender.com";
+const API_BASE = (import.meta.env.VITE_API_URL || RENDER_FRONTEND_URL).replace(/\/$/, "");
 
 export const api = axios.create({ baseURL: `${API_BASE}/api` });
 
