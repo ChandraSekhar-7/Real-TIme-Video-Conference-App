@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Settings, Plus, LogOut, User } from "lucide-react";
 import SettingsModal from "../components/SettingsModal";
+import CreateRoomModal from "../components/CreateRoomModal";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../utils/api";
 
 export default function Dashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -15,13 +17,15 @@ export default function Dashboard() {
 
   const { user, logout } = useAuth();
 
-  const handleCreateRoom = async () => {
+  const handleCreateRoom = async (customName) => {
     setError("");
     setBusy(true);
     try {
+      const finalName = customName || `${user?.name || "Meeting"}’s room`;
       const { data } = await api.post("/rooms", {
-        name: `${user?.name || "Meeting"}’s room`,
+        name: finalName,
       });
+      setCreateModalOpen(false);
       navigate(`/room/${data.room.code}`);
     } catch (err) {
       setError(err.response?.data?.message || "Unable to create room. Please try again.");
@@ -105,10 +109,16 @@ export default function Dashboard() {
           Connect, collaborate, and present with real-time audio, screen sharing, and interactive whiteboards.
         </p>
 
+        {error && (
+          <p className="text-coral text-xs bg-coral/10 border border-coral/30 rounded-lg px-4 py-2.5 mb-6 max-w-md">
+            {error}
+          </p>
+        )}
+
         {/* Room Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
           <button
-            onClick={handleCreateRoom}
+            onClick={() => setCreateModalOpen(true)}
             className="btn-primary flex items-center justify-center gap-2 py-4 text-sm font-semibold cursor-pointer"
           >
             <Plus className="w-5 h-5" />
@@ -134,6 +144,14 @@ export default function Dashboard() {
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+
+      {/* Create Instant Meeting Modal */}
+      <CreateRoomModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreateRoom={handleCreateRoom}
+        busy={busy}
       />
     </div>
   );

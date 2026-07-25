@@ -31,6 +31,7 @@ export default function Room() {
   const [handStates, setHandStates] = useState({}); // socketId -> bool
   const [reactions, setReactions] = useState([]);
   const [whiteboardSnapshot, setWhiteboardSnapshot] = useState(null);
+  const [roomName, setRoomName] = useState("");
   const [joinError, setJoinError] = useState("");
 
   const cameraTrackRef = useRef(null);
@@ -49,7 +50,10 @@ export default function Room() {
     async function setup() {
       try {
         const { data } = await api.get(`/rooms/${code}`);
-        if (!cancelled) setWhiteboardSnapshot(data.room.whiteboardSnapshot);
+        if (!cancelled) {
+          setWhiteboardSnapshot(data.room.whiteboardSnapshot);
+          setRoomName(data.room.name || "");
+        }
       } catch {
         if (!cancelled) setJoinError("This room doesn't exist or has expired.");
         return;
@@ -240,9 +244,11 @@ export default function Room() {
   return (
     <div className="h-screen bg-void grain-bg relative overflow-hidden flex flex-col">
       <header className="flex items-center justify-between px-6 py-3 border-b border-line z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="h-2.5 w-2.5 rounded-full bg-teal animate-pulseRing" />
-          <span className="text-sm text-inkdim">Live · {tiles.length} in room</span>
+          <span className="font-display font-semibold text-sm text-ink">{roomName || "Meeting Room"}</span>
+          <span className="text-xs text-amber font-mono bg-amber/10 border border-amber/30 px-2 py-0.5 rounded-md">{code}</span>
+          <span className="text-xs text-inkdim hidden sm:inline">· {tiles.length} in room</span>
         </div>
         <button
           onClick={() => setParticipantsOpen((v) => !v)}
