@@ -1,13 +1,31 @@
 import axios from "axios";
 
-const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
-const RENDER_FRONTEND_URL = "https://real-time-video-conference-app-1.onrender.com";
+// Deployed URIs on Render
+export const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
+export const RENDER_FRONTEND_URL = "https://real-time-video-conference-app-1.onrender.com";
 
 function resolveApiBase() {
-  const configured = (import.meta.env.VITE_API_URL || "").trim();
-  if (!configured) return RENDER_BACKEND_URL;
-  if (configured.includes(RENDER_FRONTEND_URL)) return RENDER_BACKEND_URL;
-  return configured.replace(/\/$/, "");
+  const envUrl = (import.meta.env.VITE_API_URL || "").trim();
+
+  // If VITE_API_URL is provided, normalize it
+  if (envUrl) {
+    const normalized = envUrl.replace(/\/$/, "");
+    
+    // If mistakenly set to the frontend URL, auto-correct to backend URL
+    if (normalized === RENDER_FRONTEND_URL || normalized.includes("real-time-video-conference-app-1.onrender.com")) {
+      return RENDER_BACKEND_URL;
+    }
+    
+    // If mistakenly set to browser origin in production (which is the client), correct to backend URL
+    if (!import.meta.env.DEV && typeof window !== "undefined" && normalized === window.location.origin) {
+      return RENDER_BACKEND_URL;
+    }
+
+    return normalized;
+  }
+
+  // Fallback defaults: localhost:5000 in dev, Render backend in production
+  return import.meta.env.DEV ? "http://localhost:5000" : RENDER_BACKEND_URL;
 }
 
 const API_BASE = resolveApiBase();
