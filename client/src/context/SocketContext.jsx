@@ -11,10 +11,13 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// Allowed Client Origin
-const RENDER_BACKEND_URL = "https://real-time-video-conference-app.onrender.com";
-const CLIENT_URL = (import.meta.env.VITE_API_URL || RENDER_BACKEND_URL).replace(/\/$/, "");
-const ALLOWED_ORIGINS = [CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
+// Allowed Client Origins (using Node.js process.env instead of Vite import.meta)
+const CLIENT_URL = (process.env.CLIENT_URL || "https://real-time-video-conference-app.onrender.com").replace(/\/$/, "");
+const ALLOWED_ORIGINS = [
+  CLIENT_URL,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173"
+];
 
 // Express Middleware
 app.use(express.json());
@@ -32,7 +35,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  transports: ["websocket", "polling"], // Matches client transports
+  transports: ["websocket", "polling"],
 });
 
 // Socket.IO Middleware for JWT Authentication
